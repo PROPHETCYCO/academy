@@ -1,0 +1,87 @@
+import mongoose from "mongoose";
+
+const userSchema = new mongoose.Schema({
+    userId: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+
+    name: {
+        type: String,
+        required: true,
+    },
+
+    phone: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+
+    address: {
+        type: String,
+        required: true,
+    },
+
+    aadharNo: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+
+    aadharPhoto: {
+        data: Buffer,        
+        contentType: String, 
+    },
+
+    password: {
+        type: String,
+        required: true,
+    },
+
+    parentId: {
+        type: String,
+        default: null,
+    },
+
+    referredIds: [
+        {
+            type: String,
+            ref: "User",
+        },
+    ],
+
+    courseName: {
+        type: String,
+        default: "",
+    },
+
+    packageName: {
+        type: String,
+        default: "",
+    },
+
+    referredPoints: {
+        type: Number,
+        default: 0,
+    },
+
+    selfPoints: {
+        type: Number,
+        default: 0,
+    },
+
+    status: {
+        type: String,
+        enum: ["pending", "active", "blocked"],
+        default: "pending",
+    },
+}, { timestamps: true });
+
+export default mongoose.model("User", userSchema);
