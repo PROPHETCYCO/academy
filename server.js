@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 
 import userRoutes from "./routes/userRoutes.js";
 import referralRoutes from "./routes/referralRoutes.js";
+import payoutRoutes from "./routes/payoutRoutes.js";
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.get("/", (req, res) => {
 //Routes
 app.use("/api/users", userRoutes);
 app.use("/api/referral", referralRoutes);
+app.use("/api/payout", payoutRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;

@@ -36,8 +36,8 @@ const userSchema = new mongoose.Schema({
     },
 
     aadharPhoto: {
-        data: Buffer,        
-        contentType: String, 
+        data: Buffer,
+        contentType: String,
     },
 
     password: {
@@ -76,6 +76,10 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+
+    validityStart: { type: Date },
+
+    validityEnd: { type: Date },
 
     status: {
         type: String,

@@ -8,12 +8,15 @@ export const getRealtimeReferralPoints = async (req, res) => {
 
         const user = await User.findOne({ userId });
         if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(404).json({ success: false, message: "User not found" });
         }
 
+        // Recalculate referral points up to 10 levels
         const referredPoints = await calculateRealtimeReferralPoints(userId);
+        const totalPoints = referredPoints;
 
-        const totalPoints = user.selfPoints + referredPoints;
+        user.referredPoints = referredPoints;
+        await user.save();
 
         res.status(200).json({
             success: true,
@@ -24,10 +27,10 @@ export const getRealtimeReferralPoints = async (req, res) => {
             totalPoints,
         });
     } catch (error) {
-        console.error("Realtime calculation error:", error);
+        console.error("Error in real-time referral calculation:", error);
         res.status(500).json({
             success: false,
-            message: "Error calculating real-time points",
+            message: "Error calculating real-time referral points",
             error: error.message,
         });
     }
