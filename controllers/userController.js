@@ -180,3 +180,18 @@ export const getAadharPhoto = async (req, res) => {
         });
     }
 };
+
+
+export const getuser_by_id = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        console.log(userId);
+        const userdetails = await User.findOne({ userId: userId });
+        if (!userdetails) {
+            return res.status(404).json({ error: 'user not found' });
+        }
+        res.status(200).json(userdetails);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

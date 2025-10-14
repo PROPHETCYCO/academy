@@ -119,3 +119,24 @@ export const getValidityForAmount = (amount) => {
     const roundedAmount = Math.round(amount);
     return mapping[roundedAmount] || 0;
 };
+
+
+export const getorderdetails_by_userid = async (req, res) => {
+    try {
+        const { userId } = req.body;  // get userId from POST request body
+        console.log("Fetching orders for userId:", userId);
+        if (!userId) {
+            return res.status(400).json({ error: "userId is required" });
+        }
+        // find all orders for this user
+        const orderDetails = await Checkout.find({ userId: userId });
+        if (!orderDetails || orderDetails.length === 0) {
+            return res.status(404).json({ error: "No orders found for this user" });
+        }
+        console.log("Order details fetched:", orderDetails);
+        res.status(200).json(orderDetails); // send array of orders
+    } catch (err) {
+        console.error("Error fetching orders:", err);
+        res.status(500).json({ error: err.message });
+    }
+};

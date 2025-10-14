@@ -45,6 +45,8 @@ const userSchema = new mongoose.Schema({
         required: true,
     },
 
+    referralLink: { type: String, required: true },
+
     parentId: {
         type: String,
         default: null,
