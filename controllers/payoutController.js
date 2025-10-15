@@ -86,3 +86,25 @@ export const runGlobalPayout = async (req, res) => {
         });
     }
 };
+
+
+//payout for single user
+export const getUserPayouts = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const payouts = await Payout.find({ userId });
+
+        if (!payouts.length) {
+            return res.status(404).json({ message: "No payout records found for this user" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Payout records fetched successfully",
+            data: payouts,
+        });
+    } catch (error) {
+        console.error("Error fetching payout data:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch payout details" });
+    }
+};

@@ -35,3 +35,57 @@ export const getRealtimeReferralPoints = async (req, res) => {
         });
     }
 };
+
+
+//Tree  Api
+export const getUserWithReferrals = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Find main user
+        const mainUser = await User.findOne({ userId });
+        if (!mainUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Find referred users using referredIds array
+        const referredUsers = await User.find({ userId: { $in: mainUser.referredIds } });
+
+        res.status(200).json({
+            success: true,
+            message: "User and referred users fetched successfully",
+            data: {
+                mainUser: {
+                    userId: mainUser.userId,
+                    name: mainUser.name,
+                    email: mainUser.email,
+                    phone: mainUser.phone,
+                    address: mainUser.address,
+                    referralLink: mainUser.referralLink,
+                    selfPoints: mainUser.selfPoints,
+                    referredPoints: mainUser.referredPoints,
+                    totalPoints: mainUser.totalPoints,
+                    status: mainUser.status,
+                },
+                referredUsers: referredUsers.map(user => ({
+                    userId: user.userId,
+                    name: user.name,
+                    email: user.email,
+                    phone: user.phone,
+                    address: user.address,
+                    selfPoints: user.selfPoints,
+                    referredPoints: user.referredPoints,
+                    totalPoints: user.totalPoints,
+                    status: user.status,
+                })),
+            },
+        });
+    } catch (error) {
+        console.error("Error fetching user and referrals:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch referral details",
+            error: error.message,
+        });
+    }
+};

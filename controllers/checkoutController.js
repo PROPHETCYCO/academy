@@ -140,3 +140,25 @@ export const getorderdetails_by_userid = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+
+//checkout details by user id
+export const getUserCheckoutDetails = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const checkoutDetails = await Checkout.find({ userId });
+
+        if (!checkoutDetails.length) {
+            return res.status(404).json({ message: "No checkout records found for this user" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Checkout details fetched successfully",
+            data: checkoutDetails,
+        });
+    } catch (error) {
+        console.error("Error fetching checkout details:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch checkout details" });
+    }
+};

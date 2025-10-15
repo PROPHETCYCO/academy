@@ -142,3 +142,36 @@ export const updateKycStatus = async (req, res) => {
         });
     }
 };
+
+
+// ✅ Get KYC details for a specific user (including image)
+export const getUserBankDetails = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const bankDetails = await BankDetails.findOne({ userId });
+
+        if (!bankDetails) {
+            return res.status(404).json({ message: "No bank details found for this user" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Bank details fetched successfully",
+            data: {
+                userId: bankDetails.userId,
+                nameAsPerDocument: bankDetails.nameAsPerDocument,
+                bankName: bankDetails.bankName,
+                accountNumber: bankDetails.accountNumber,
+                branchName: bankDetails.branchName,
+                ifscCode: bankDetails.ifscCode,
+                status: bankDetails.status,
+                passbookPhoto: bankDetails.passbookPhoto
+                    ? `data:${bankDetails.passbookPhoto.contentType};base64,${bankDetails.passbookPhoto.data.toString("base64")}`
+                    : null,
+            },
+        });
+    } catch (error) {
+        console.error("Error fetching bank details:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch bank details" });
+    }
+};

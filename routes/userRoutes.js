@@ -1,7 +1,7 @@
 import express from "express";
-import { getAadharPhoto, getuser_by_id, loginUser, registerUser } from "../controllers/userController.js";
+import { getAadharPhoto, getuser_by_id, loginUser, registerUser, updateUserDetails } from "../controllers/userController.js";
 import { upload } from "../middleware/upload.js";
-import { checkout, getorderdetails_by_userid, paymentverification_students } from "../controllers/checkoutController.js";
+import { checkout, getorderdetails_by_userid, getUserCheckoutDetails, paymentverification_students } from "../controllers/checkoutController.js";
 
 const router = express.Router();
 
@@ -13,5 +13,7 @@ router.post("/checkout", checkout);
 router.post("/paymentverification_students", paymentverification_students);
 router.post("/getuserdetails", getuser_by_id);
 router.post("/getorderdetailsbyuser", getorderdetails_by_userid);
+router.get("/:userId", getUserCheckoutDetails);
+router.put("/update/:userId", updateUserDetails);
 
 export default router;
