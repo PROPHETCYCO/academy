@@ -113,7 +113,7 @@ export const updateKycStatus = async (req, res) => {
             return res.status(400).json({ message: "Status is required" });
         }
 
-        const validStatuses = ["inactive", "pending", "verified", "rejected"];
+        const validStatuses = ["pending", "verified", "rejected"];
         if (!validStatuses.includes(status.toLowerCase())) {
             return res.status(400).json({ message: "Invalid status value" });
         }

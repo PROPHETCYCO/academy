@@ -12,7 +12,7 @@ const bankDetailsSchema = new mongoose.Schema({
         data: Buffer,
         contentType: String,
     },
-    status: { type: String, default: "inactive" },
+    status: { type: String, default: "pending" },
 }, { timestamps: true });
 
 export default mongoose.model("BankDetails", bankDetailsSchema);

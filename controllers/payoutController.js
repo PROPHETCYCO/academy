@@ -108,3 +108,74 @@ export const getUserPayouts = async (req, res) => {
         res.status(500).json({ success: false, message: "Failed to fetch payout details" });
     }
 };
+
+
+//update payout sttaus by id
+export const updatePayoutStatus = async (req, res) => {
+    try {
+        const { userId, payoutId } = req.params;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ success: false, message: "Status is required" });
+        }
+
+        const validStatuses = ["pending", "completed", "failed"];
+        if (!validStatuses.includes(status.toLowerCase())) {
+            return res.status(400).json({ success: false, message: "Invalid status value" });
+        }
+
+        // Find user payout record
+        const payoutRecord = await Payout.findOne({ userId });
+        if (!payoutRecord) {
+            return res.status(404).json({ success: false, message: "No payout record found for this user" });
+        }
+
+        // Find the specific payout inside the array
+        const payout = payoutRecord.payouts.id(payoutId);
+        if (!payout) {
+            return res.status(404).json({ success: false, message: "Payout entry not found" });
+        }
+
+        // Update status
+        payout.status = status.toLowerCase();
+
+        // Save document
+        await payoutRecord.save();
+
+        res.status(200).json({
+            success: true,
+            message: `Payout status updated to ${status}`,
+            data: payoutRecord,
+        });
+    } catch (error) {
+        console.error("Error updating payout status:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to update payout status",
+            error: error.message,
+        });
+    }
+};
+
+
+//all payouts
+export const getAllPayouts = async (req, res) => {
+    try {
+        // Fetch all payout records sorted by most recent first
+        const allPayouts = await Payout.find().sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            message: "All user payouts fetched successfully",
+            data: allPayouts,
+        });
+    } catch (error) {
+        console.error("Get All Payouts Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch payouts",
+            error: error.message,
+        });
+    }
+};

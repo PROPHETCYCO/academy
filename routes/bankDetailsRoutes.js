@@ -10,9 +10,9 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-router.post("/save", upload.single("passbookPhoto"), saveBankDetails);
-router.get("/all", getAllKycDetails);
-router.put("/status/:userId", updateKycStatus);
-router.get("/:userId", getUserBankDetails);
+router.post("/save", upload.single("passbookPhoto"), saveBankDetails);  // Save bank details with optional passbook photo
+router.get("/all", getAllKycDetails); // Fetch all KYC details
+router.put("/status/:userId", updateKycStatus); // Update KYC status for a user
+router.get("/:userId", getUserBankDetails);  // Fetch bank details for a specific user
 
 export default router;

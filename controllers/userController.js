@@ -260,3 +260,84 @@ export const updateUserDetails = async (req, res) => {
         });
     }
 };
+
+
+//update user status by id
+export const updateUserStatus = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { status } = req.body;
+
+        // Validate input
+        if (!status) {
+            return res.status(400).json({ success: false, message: "Status is required" });
+        }
+
+        const validStatuses = ["pending", "active", "rejected"];
+        if (!validStatuses.includes(status.toLowerCase())) {
+            return res.status(400).json({ success: false, message: "Invalid status value" });
+        }
+
+        // Update user status
+        const updatedUser = await User.findOneAndUpdate(
+            { userId },
+            { status: status.toLowerCase() },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `User status updated to ${status}`,
+            data: updatedUser,
+        });
+    } catch (error) {
+        console.error("Error updating user status:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to update user status",
+            error: error.message,
+        });
+    }
+};
+
+
+//all user and all user details
+export const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find().select("-password -aadharPhoto.data");
+        // ✅ Exclude password and raw binary aadhar image data for security & performance
+
+        if (!users.length) {
+            return res.status(404).json({
+                success: false,
+                message: "No users found in the system",
+            });
+        }
+
+        // ✅ If you want to show Aadhaar photo as base64 string:
+        const formattedUsers = users.map(user => ({
+            ...user.toObject(),
+            aadharPhoto: user.aadharPhoto?.data
+                ? `data:${user.aadharPhoto.contentType};base64,${user.aadharPhoto.data.toString("base64")}`
+                : null,
+        }));
+
+        res.status(200).json({
+            success: true,
+            message: "All users fetched successfully",
+            totalUsers: formattedUsers.length,
+            data: formattedUsers,
+        });
+    } catch (error) {
+        console.error("Error fetching all users:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch all users",
+            error: error.message,
+        });
+    }
+};

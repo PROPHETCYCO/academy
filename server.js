@@ -8,6 +8,7 @@ import userRoutes from "./routes/userRoutes.js";
 import referralRoutes from "./routes/referralRoutes.js";
 import payoutRoutes from "./routes/payoutRoutes.js";
 import bankDetailsRoutes from "./routes/bankDetailsRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
 
@@ -35,9 +36,10 @@ app.use("/api/users", userRoutes);
 app.use("/api/referral", referralRoutes);
 app.use("/api/payout", payoutRoutes);
 app.use("/api/bankdetails", bankDetailsRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
 });
