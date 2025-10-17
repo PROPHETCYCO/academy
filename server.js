@@ -21,27 +21,7 @@ export const instance = new Razorpay({
 
 // Middleware
 app.use(express.json());
-//app.use(cors());
-
-
-const allowedOrigins = [
-    'http://localhost:5173',              // local dev
-    'https://synthosphereacademy.com'     // deployed frontend
-];
-
-app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin) return callback(null, true); // allow Postman/curl requests
-        if (!allowedOrigins.includes(origin)) {
-            return callback(new Error(`CORS blocked for origin ${origin}`), false);
-        }
-        return callback(null, true);
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true
-}));
-
-
+app.use(cors());
 
 // Connect to MongoDB
 connectDB();
@@ -60,6 +40,6 @@ app.use("/api/admin", adminRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
 });
