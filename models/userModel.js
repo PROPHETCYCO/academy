@@ -40,6 +40,16 @@ const userSchema = new mongoose.Schema({
         contentType: String,
     },
 
+    panNo: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    panPhoto: {
+        data: Buffer,
+        contentType: String,
+    },
+
     password: {
         type: String,
         required: true,

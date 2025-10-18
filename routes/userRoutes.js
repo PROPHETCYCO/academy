@@ -5,7 +5,7 @@ import { checkout, getorderdetails_by_userid, getUserCheckoutDetails, paymentver
 
 const router = express.Router();
 
-router.post("/register", upload.single("aadharPhoto"), registerUser); // for registering user
+router.post("/register", upload.fields([{ name: "aadharPhoto", maxCount: 1 }, { name: "panPhoto", maxCount: 1 },]), registerUser); // for registering user
 router.post("/login", loginUser);  // foir login user
 router.get("/:id/aadharPhoto", getAadharPhoto);  //particularly fetch user
 

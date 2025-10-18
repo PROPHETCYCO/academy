@@ -14,12 +14,13 @@ export const registerUser = async (req, res) => {
             email,
             address,
             aadharNo,
+            panNo,
             password,
-            parentId, // ✅ replacing referralId
+            parentId,
         } = req.body;
 
         // Validation
-        if (!name || !phone || !email || !address || !aadharNo || !password) {
+        if (!name || !phone || !email || !address || !aadharNo || !panNo || !password) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
@@ -29,11 +30,12 @@ export const registerUser = async (req, res) => {
                 { phone },
                 { email },
                 { aadharNo },
+                { panNo },
             ],
         });
 
         if (existingUser) {
-            return res.status(400).json({ message: "User with given phone, email, or Aadhaar already exists" });
+            return res.status(400).json({ message: "User with given phone, email, Aadhaar, or PAN already exists" });
         }
 
         // Generate unique userId
@@ -42,12 +44,21 @@ export const registerUser = async (req, res) => {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Handle Aadhaar photo (binary)
+        // Handle Aadhaar photo
         let aadharPhoto = { data: null, contentType: null };
-        if (req.file) {
+        if (req.files && req.files.aadharPhoto && req.files.aadharPhoto[0]) {
             aadharPhoto = {
-                data: req.file.buffer,
-                contentType: req.file.mimetype,
+                data: req.files.aadharPhoto[0].buffer,
+                contentType: req.files.aadharPhoto[0].mimetype,
+            };
+        }
+
+        // Handle PAN photo
+        let panPhoto = { data: null, contentType: null };
+        if (req.files && req.files.panPhoto && req.files.panPhoto[0]) {
+            panPhoto = {
+                data: req.files.panPhoto[0].buffer,
+                contentType: req.files.panPhoto[0].mimetype,
             };
         }
 
@@ -63,6 +74,8 @@ export const registerUser = async (req, res) => {
             address,
             aadharNo,
             aadharPhoto,
+            panNo,
+            panPhoto,
             password: hashedPassword,
             parentId: parentId || null,
             referralLink,
@@ -70,7 +83,7 @@ export const registerUser = async (req, res) => {
 
         await newUser.save();
 
-        // If there’s a parent, update their referredIds
+        // Update parent’s referredIds if exists
         if (parentId) {
             await User.updateOne({ userId: parentId }, { $push: { referredIds: userId } });
         }
@@ -92,7 +105,6 @@ export const registerUser = async (req, res) => {
         res.status(500).json({ success: false, message: "Registration failed", error: error.message });
     }
 };
-
 
 
 
