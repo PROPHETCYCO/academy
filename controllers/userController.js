@@ -353,3 +353,43 @@ export const getAllUsers = async (req, res) => {
         });
     }
 };
+
+
+// ✅ Get total selfPoints from all referred users
+export const getReferredSelfPoints = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // 1️⃣ Find the user
+        const user = await User.findOne({ userId });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        // 2️⃣ Get all referred users
+        const referredUsers = await User.find({
+            userId: { $in: user.referredIds }
+        }).select("userId selfPoints");
+
+        // 3️⃣ Calculate total selfPoints
+        const totalSelfPoints = referredUsers.reduce(
+            (sum, refUser) => sum + (refUser.selfPoints || 0),
+            0
+        );
+
+        // 4️⃣ Return response
+        res.status(200).json({
+            success: true,
+            userId,
+            totalSelfPointsFromReferredUsers: totalSelfPoints,
+            referredUsers
+        });
+    } catch (error) {
+        console.error("Error fetching referred self points:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
+    }
+};

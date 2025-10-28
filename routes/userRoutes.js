@@ -1,5 +1,5 @@
 import express from "express";
-import { getAadharPhoto, getAllUsers, getuser_by_id, loginUser, registerUser, updateUserDetails, updateUserStatus } from "../controllers/userController.js";
+import { getAadharPhoto, getAllUsers, getReferredSelfPoints, getuser_by_id, loginUser, registerUser, updateUserDetails, updateUserStatus } from "../controllers/userController.js";
 import { upload } from "../middleware/upload.js";
 import { checkout, getorderdetails_by_userid, getUserCheckoutDetails, paymentverification_students } from "../controllers/checkoutController.js";
 
@@ -17,5 +17,8 @@ router.get("/all", getAllUsers);  //fetch all users
 router.put("/update/:userId", updateUserDetails);  //update user details by id
 router.put("/status/:userId", updateUserStatus);  //update user status by id
 router.get("/:userId", getUserCheckoutDetails);  //fetch checkout details by user id
+
+
+router.get("/referred-selfpoints/:userId", getReferredSelfPoints); //fetch referred and self points for a user
 
 export default router;
