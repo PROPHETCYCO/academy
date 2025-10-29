@@ -194,19 +194,86 @@ export const getAadharPhoto = async (req, res) => {
 };
 
 
+// export const getuser_by_id = async (req, res) => {
+//     try {
+//         const { userId } = req.body;
+//         console.log(userId);
+//         const userdetails = await User.findOne({ userId: userId });
+//         if (!userdetails) {
+//             return res.status(404).json({ error: 'user not found' });
+//         }
+//         res.status(200).json(userdetails);
+//     } catch (err) {
+//         res.status(500).json({ error: err.message });
+//     }
+// };
+
 export const getuser_by_id = async (req, res) => {
     try {
         const { userId } = req.body;
-        console.log(userId);
-        const userdetails = await User.findOne({ userId: userId });
-        if (!userdetails) {
-            return res.status(404).json({ error: 'user not found' });
+        console.log("Requested User ID:", userId);
+
+        // 1️⃣ Fetch main user
+        const user = await User.findOne({ userId });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
         }
-        res.status(200).json(userdetails);
+
+        // 2️⃣ Recursive function to get all downline users (no level limit)
+        const getAllTeamMembers = async (uId, allMembers = []) => {
+            const children = await User.find({ parentId: uId });
+            if (children.length === 0) return allMembers;
+
+            for (const child of children) {
+                allMembers.push(child);
+                await getAllTeamMembers(child.userId, allMembers); // go deeper recursively
+            }
+
+            return allMembers;
+        };
+
+        // 3️⃣ Get full downline team
+        const teamMembers = await getAllTeamMembers(userId);
+
+        // 4️⃣ Calculate team stats
+        const totalTeamMembers = teamMembers.length;
+        const totalTeamSelfPoints = teamMembers.reduce(
+            (sum, member) => sum + (member.selfPoints || 0),
+            0
+        );
+
+        // 5️⃣ Send response
+        res.status(200).json({
+            success: true,
+            message: "User details with team data fetched successfully",
+            // user: {
+            //     userId: user.userId,
+            //     name: user.name,
+            //     email: user.email,
+            //     phone: user.phone,
+            //     selfPoints: user.selfPoints || 0,
+            //     parentId: user.parentId || null,
+            // },
+            user,
+            totalTeamMembers,
+            totalTeamSelfPoints,
+            // teamMembers: teamMembers.map((m) => ({
+            //     userId: m.userId,
+            //     name: m.name,
+            //     selfPoints: m.selfPoints || 0,
+            //     parentId: m.parentId,
+            // })),
+        });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("Error in getuser_by_id:", err);
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: err.message,
+        });
     }
 };
+
 
 
 //user detail update api
