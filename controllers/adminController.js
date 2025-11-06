@@ -1,5 +1,5 @@
-import User from "../models/userModel.js";
-import { Checkout } from "../models/checkout.js";
+import User from "../models/User.js";
+import { Checkout } from "../models/Checkout.js";
 
 export const getDashboardStats = async (req, res) => {
     try {

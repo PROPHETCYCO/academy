@@ -1,4 +1,4 @@
-import User from "../models/userModel.js";
+import User from "../models/User.js";
 
 function generateRandom5DigitNumber() {
     return Math.floor(10000 + Math.random() * 90000);

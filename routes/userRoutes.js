@@ -1,11 +1,19 @@
 import express from "express";
 import { getAadharPhoto, getAllUsers, getReferredSelfPoints, getuser_by_id, loginUser, registerUser, updateUserDetails, updateUserStatus } from "../controllers/userController.js";
-import { upload } from "../middleware/upload.js";
+import upload from "../middleware/upload.js";
 import { checkout, getorderdetails_by_userid, getUserCheckoutDetails, paymentverification_students } from "../controllers/checkoutController.js";
 
 const router = express.Router();
 
-router.post("/register", upload.fields([{ name: "aadharPhoto", maxCount: 1 }, { name: "panPhoto", maxCount: 1 },]), registerUser); // for registering user
+router.post(
+  "/register",
+  upload.fields([
+    { name: "aadharFront", maxCount: 1 },
+    { name: "aadharBack", maxCount: 1 },
+    { name: "panPhoto", maxCount: 1 },
+  ]),
+  registerUser
+); // for registering user
 router.post("/login", loginUser);  // foir login user
 router.get("/:id/aadharPhoto", getAadharPhoto);  //particularly fetch user
 

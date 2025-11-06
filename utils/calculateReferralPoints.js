@@ -1,7 +1,7 @@
-import User from "../models/userModel.js";
+import User from "../models/User.js";
 
 const LEVEL_PERCENTAGES = {
-    2: 0.15,
+    2: 0.12,
     3: 0.05,
     4: 0.03,
     5: 0.02,

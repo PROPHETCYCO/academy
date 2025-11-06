@@ -1,4 +1,5 @@
-import BankDetails from "../models/bankDetails.js";
+import BankDetails from "../models/BankDetails.js";
+import { uploadFileToS3 } from "../utils/uploadToS3.js";
 
 export const saveBankDetails = async (req, res) => {
     try {
@@ -12,25 +13,34 @@ export const saveBankDetails = async (req, res) => {
             ifscCode,
         } = req.body;
 
-        if (!userId || !name || !nameAsPerDocument || !bankName || !accountNo || !branchName || !ifscCode) {
-            return res.status(400).json({ message: "All fields are required" });
+        // ✅ Validate required fields
+        if (
+            !userId ||
+            !name ||
+            !nameAsPerDocument ||
+            !bankName ||
+            !accountNo ||
+            !branchName ||
+            !ifscCode
+        ) {
+            return res.status(400).json({ message: "All fields are required." });
         }
 
-        // Check if user already submitted bank details
+        // ✅ Check if user already submitted bank details
         const existing = await BankDetails.findOne({ userId });
         if (existing) {
-            return res.status(400).json({ message: "Bank details already exist for this user" });
+            return res.status(400).json({ message: "Bank details already exist for this user." });
         }
 
-        // Handle passbook photo upload
-        let passbookPhoto = { data: null, contentType: null };
+        // ✅ Handle passbook photo upload (to S3)
+        let passbookPhotoUrl = null;
         if (req.file) {
-            passbookPhoto = {
-                data: req.file.buffer,
-                contentType: req.file.mimetype,
-            };
+            passbookPhotoUrl = await uploadFileToS3(req.file, "passbook-photo");
+        } else {
+            return res.status(400).json({ message: "Passbook photo is required." });
         }
 
+        // ✅ Create new bank details document
         const bankDetails = new BankDetails({
             userId,
             name,
@@ -39,26 +49,35 @@ export const saveBankDetails = async (req, res) => {
             accountNo,
             branchName,
             ifscCode,
-            passbookPhoto,
+            passbookPhoto: passbookPhotoUrl,
         });
 
         await bankDetails.save();
 
+        // ✅ Respond success
         res.status(201).json({
             success: true,
-            message: "Bank details saved successfully",
+            message: "Bank details saved successfully.",
             data: {
                 userId,
                 name,
+                nameAsPerDocument,
                 bankName,
                 accountNo,
                 branchName,
                 ifscCode,
+                passbookPhoto: passbookPhotoUrl,
+                status: bankDetails.status,
             },
         });
+
     } catch (error) {
-        console.error("Error saving bank details:", error);
-        res.status(500).json({ success: false, message: "Failed to save bank details", error: error.message });
+        console.error("❌ Error saving bank details:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to save bank details.",
+            error: error.message,
+        });
     }
 };
 

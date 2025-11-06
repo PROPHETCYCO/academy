@@ -1,8 +1,10 @@
-import { Checkout } from "../models/checkout.js";
+import { Checkout } from "../models/Checkout.js";
 import { instance } from "../server.js";
 import crypto from "crypto";
 import dotenv from "dotenv";
-import User from "../models/userModel.js";
+import User from "../models/User.js";
+import CourseDetails from "../models/courseDetails.js";
+
 dotenv.config();
 export const checkout = async (req, res) => {
     try {
@@ -36,55 +38,117 @@ export const paymentverification_students = async (req, res) => {
         coursename,
         amount,
     } = req.body;
+
     try {
-        // :one: Verify signature
+        // ✅ Step 1: Verify Razorpay signature
         const hmac = crypto.createHmac("sha256", process.env.RAZORPAY_API_SECRET);
         hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
         const generated_signature = hmac.digest("hex");
-        if (generated_signature === razorpay_signature) {
-            // :two: Save payment details to DB
-            const paymentDetails = new Checkout({
-                fullname,
-                userId,
-                phoneno,
-                address,
-                email,
-                packagename,
-                coursename,
-                amount,
-                razorpay_order_id,
-                razorpay_payment_id,
-                razorpay_signature,
-            });
-            const pointsToAdd = getPointsForAmount(amount);
-            const validityMonths = getValidityForAmount(amount);
-            const user = await User.findOne({ userId: userId });
-            if (user) {
-                const now = new Date();
-                const expiry = new Date(now);
-                expiry.setMonth(expiry.getMonth() + validityMonths);
-                user.selfPoints = (user.points || 0) + pointsToAdd;
-                user.packageName = packagename;
-                user.courseName = coursename;
-                user.validityStart = now;
-                user.validityEnd = expiry;
-                await user.save();
-                await paymentDetails.save();
-                console.log("Payment details saved");
-                console.log("user got  points and  month validity.");
-            }
-            // :three: Redirect frontend
-            return res
-                .status(200)
-                .json({ success: true, message: "Payment successful" });
-        } else {
-            return res
-                .status(400)
-                .json({ success: false, message: "Invalid signature" });
+
+        if (generated_signature !== razorpay_signature) {
+            return res.status(400).json({ success: false, message: "Invalid signature" });
         }
+
+        // ✅ Step 2: Save payment details to Checkout collection
+        const paymentDetails = new Checkout({
+            fullname,
+            userId,
+            phoneno,
+            address,
+            email,
+            packagename,
+            coursename,
+            amount,
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature,
+        });
+
+        const pointsToAdd = getPointsForAmount(amount);
+        const validityMonths = getValidityForAmount(amount);
+        const user = await User.findOne({ userId });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        const now = new Date();
+        const newValidityEnd = new Date(now);
+        newValidityEnd.setMonth(newValidityEnd.getMonth() + validityMonths);
+
+        // ✅ Step 3: Update user points
+        user.selfPoints = (user.selfPoints || 0) + pointsToAdd;
+        await user.save();
+        await paymentDetails.save();
+
+        // ✅ Step 4: Course details update with validity logic
+        let courseDetails = await CourseDetails.findOne({ userId });
+
+        const newPurchase = {
+            courseName: coursename,
+            packageName: packagename,
+            amount,
+            date: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+            status: "completed",
+        };
+
+        if (!courseDetails) {
+            // 🆕 No previous record → Create new
+            courseDetails = new CourseDetails({
+                userId,
+                name: fullname,
+                courseName: coursename,
+                packageName: packagename,
+                validityStart: now,
+                validityEnd: newValidityEnd,
+                purchaseHistory: [newPurchase],
+            });
+        } else {
+            // 🧠 Has previous record → Check validity logic
+            const currentEnd = new Date(courseDetails.validityEnd);
+            let updatedStart = now;
+            let updatedEnd;
+
+            if (currentEnd < now) {
+                // ⏰ Course expired → reset validity
+                updatedEnd = new Date(now);
+                updatedEnd.setMonth(updatedEnd.getMonth() + validityMonths);
+            } else {
+                // 🔁 Course still active → extend validity
+                updatedEnd = new Date(currentEnd);
+                updatedEnd.setMonth(updatedEnd.getMonth() + validityMonths);
+                updatedStart = courseDetails.validityStart; // keep the old start date
+            }
+
+            // 📝 Update fields
+            courseDetails.courseName = coursename;
+            courseDetails.packageName = packagename;
+            courseDetails.validityStart = updatedStart;
+            courseDetails.validityEnd = updatedEnd;
+            courseDetails.purchaseHistory.push(newPurchase);
+        }
+
+        await courseDetails.save();
+
+        console.log("✅ Payment verified & Course validity updated successfully.");
+
+        // ✅ Step 5: Respond success
+        return res.status(200).json({
+            success: true,
+            message: "Payment successful & course validity updated.",
+            data: {
+                userId,
+                coursename,
+                packagename,
+                validityStart: courseDetails.validityStart,
+                validityEnd: courseDetails.validityEnd,
+                pointsAdded: pointsToAdd,
+            },
+        });
+
     } catch (error) {
-        console.error(":x: Error verifying payment:", error);
-        res.status(400).json({ success: false });
+        console.error("❌ Error verifying payment:", error);
+        res.status(400).json({ success: false, message: "Payment verification failed", error: error.message });
     }
 };
 

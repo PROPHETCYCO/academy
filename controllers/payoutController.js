@@ -1,5 +1,5 @@
-import User from "../models/userModel.js";
-import Payout from "../models/payoutModel.js";
+import User from "../models/User.js";
+import Payout from "../models/Payout.js";
 import { calculateRealtimeReferralPoints } from "../utils/calculateReferralPoints.js";
 
 // ✅ Helper function to convert UTC → IST readable format

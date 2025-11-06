@@ -1,18 +1,63 @@
 import mongoose from "mongoose";
 
-const bankDetailsSchema = new mongoose.Schema({
-    userId: { type: String, required: true, unique: true },
-    name: { type: String, required: true },
-    nameAsPerDocument: { type: String, required: true },
-    bankName: { type: String, required: true },
-    accountNo: { type: String, required: true },
-    branchName: { type: String, required: true },
-    ifscCode: { type: String, required: true },
-    passbookPhoto: {
-        data: Buffer,
-        contentType: String,
+const bankDetailsSchema = new mongoose.Schema(
+    {
+        userId: {
+            type: String,
+            required: true,
+            unique: true,
+        },
+
+        name: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        nameAsPerDocument: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        bankName: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        branchName: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        accountNo: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        ifscCode: {
+            type: String,
+            required: true,
+            uppercase: true,
+            trim: true,
+        },
+
+        // ✅ Store S3 URL instead of binary data
+        passbookPhoto: {
+            type: String, // URL of image uploaded to S3
+            required: true,
+        },
+
+        status: {
+            type: String,
+            enum: ["pending", "verified", "rejected"],
+            default: "pending",
+        },
     },
-    status: { type: String, default: "pending" },
-}, { timestamps: true });
+    { timestamps: true }
+);
 
 export default mongoose.model("BankDetails", bankDetailsSchema);

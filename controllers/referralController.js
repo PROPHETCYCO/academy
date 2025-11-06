@@ -1,33 +1,80 @@
-import User from "../models/userModel.js";
+import User from "../models/User.js";
+import Payout from "../models/Payout.js";
 import { calculateRealtimeReferralPoints } from "../utils/calculateReferralPoints.js";
 
 // GET /api/referral/realtime/:userId
 export const getRealtimeReferralPoints = async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { userId, name } = req.body;
 
-        const user = await User.findOne({ userId });
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
+        if (!userId || !name) {
+            return res.status(400).json({
+                success: false,
+                message: "userId and name are required.",
+            });
         }
 
-        // Recalculate referral points up to 10 levels
+        // ✅ Find the main user
+        const user = await User.findOne({ userId });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found.",
+            });
+        }
+
+        // ✅ Step 1: Calculate Direct Team Points (12% of each direct’s selfPoints)
+        let directReferredPoints = 0;
+
+        if (user.referredIds && user.referredIds.length > 0) {
+            const directTeam = await User.find({ userId: { $in: user.referredIds } });
+
+            directReferredPoints = directTeam.reduce((total, member) => {
+                const points = (member.selfPoints || 0) * 0.12;
+                return total + points;
+            }, 0);
+        }
+
+        // ✅ Step 2: Calculate Multi-level Referral Points
         const referredPoints = await calculateRealtimeReferralPoints(userId);
-        const totalPoints = referredPoints;
 
-        user.referredPoints = referredPoints;
-        await user.save();
+        // ✅ Step 3: Save or Update Payout Record
+        let payout = await Payout.findOne({ userId });
 
-        res.status(200).json({
+        if (!payout) {
+            // 🆕 Create new payout record
+            payout = new Payout({
+                userId,
+                name,
+                totalPoints: 0, // initialized empty
+                referredPoints,
+                directReferredPoints,
+                payouts: [], // empty array
+            });
+        } else {
+            // 🔁 Update existing payout record but KEEP totalPoints as it is
+            payout.referredPoints = referredPoints;
+            payout.directReferredPoints = directReferredPoints;
+            // ✅ Do not change payout.totalPoints (keep existing value)
+        }
+
+        await payout.save();
+
+        // ✅ Step 4: Send Response
+        return res.status(200).json({
             success: true,
-            userId: user.userId,
-            name: user.name,
-            selfPoints: user.selfPoints,
-            referredPoints,
-            totalPoints,
+            message: "Referral and direct points calculated successfully.",
+            data: {
+                userId,
+                name,
+                directReferredPoints,
+                referredPoints,
+                totalPoints: payout.totalPoints, // existing totalPoints retained
+            },
         });
+
     } catch (error) {
-        console.error("Error in real-time referral calculation:", error);
+        console.error("❌ Error in real-time referral calculation:", error);
         res.status(500).json({
             success: false,
             message: "Error calculating real-time referral points",
@@ -35,6 +82,7 @@ export const getRealtimeReferralPoints = async (req, res) => {
         });
     }
 };
+
 
 
 //Tree  Api

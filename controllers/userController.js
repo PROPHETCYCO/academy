@@ -1,11 +1,16 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import User from "../models/userModel.js";
+import User from "../models/User.js";
+import BankDetails from "../models/BankDetails.js";
+import Payout from "../models/Payout.js";
+import CourseDetails from "../models/courseDetails.js";
 import { generateUniqueUserId } from "../utils/generateUserId.js";
+import { uploadFileToS3 } from "../utils/uploadToS3.js";
 import { generateToken } from "../utils/generateToken.js";
 
 const BASE_REFERRAL_URL = "https://synthosphereacademy.com/register/";
 
+
+//User Registration
 export const registerUser = async (req, res) => {
     try {
         const {
@@ -19,53 +24,44 @@ export const registerUser = async (req, res) => {
             parentId,
         } = req.body;
 
-        // Validation
+        // 1️⃣ Basic validation
         if (!name || !phone || !email || !address || !aadharNo || !panNo || !password) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        // Check for unique fields
+        // 2️⃣ Check for duplicates
         const existingUser = await User.findOne({
-            $or: [
-                { phone },
-                { email },
-                { aadharNo },
-                { panNo },
-            ],
+            $or: [{ phone }, { email }, { aadharNo }, { panNo }],
         });
-
         if (existingUser) {
-            return res.status(400).json({ message: "User with given phone, email, Aadhaar, or PAN already exists" });
+            return res.status(400).json({ message: "User already exists with given details" });
         }
 
-        // Generate unique userId
+        // 3️⃣ Generate UserID and hash password
         const userId = await generateUniqueUserId();
+        //const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // 4️⃣ Upload images to S3
+        let aadharPhotoFrontUrl = null;
+        let aadharPhotoBackUrl = null;
+        let panPhotoUrl = null;
 
-        // Handle Aadhaar photo
-        let aadharPhoto = { data: null, contentType: null };
-        if (req.files && req.files.aadharPhoto && req.files.aadharPhoto[0]) {
-            aadharPhoto = {
-                data: req.files.aadharPhoto[0].buffer,
-                contentType: req.files.aadharPhoto[0].mimetype,
-            };
+        if (req.files) {
+            if (req.files.aadharFront && req.files.aadharFront[0]) {
+                aadharPhotoFrontUrl = await uploadFileToS3(req.files.aadharFront[0], "aadhar-front");
+            }
+            if (req.files.aadharBack && req.files.aadharBack[0]) {
+                aadharPhotoBackUrl = await uploadFileToS3(req.files.aadharBack[0], "aadhar-back");
+            }
+            if (req.files.panPhoto && req.files.panPhoto[0]) {
+                panPhotoUrl = await uploadFileToS3(req.files.panPhoto[0], "pan-photo");
+            }
         }
 
-        // Handle PAN photo
-        let panPhoto = { data: null, contentType: null };
-        if (req.files && req.files.panPhoto && req.files.panPhoto[0]) {
-            panPhoto = {
-                data: req.files.panPhoto[0].buffer,
-                contentType: req.files.panPhoto[0].mimetype,
-            };
-        }
-
-        // Create referral link
+        // 5️⃣ Generate referral link
         const referralLink = `${BASE_REFERRAL_URL}${userId}`;
 
-        // Create new user
+        // 6️⃣ Create user document
         const newUser = new User({
             userId,
             name,
@@ -73,36 +69,71 @@ export const registerUser = async (req, res) => {
             email,
             address,
             aadharNo,
-            aadharPhoto,
+            aadharPhotoFront: aadharPhotoFrontUrl,
+            aadharPhotoBack: aadharPhotoBackUrl,
             panNo,
-            panPhoto,
-            password: hashedPassword,
-            parentId: parentId || null,
+            panPhoto: panPhotoUrl,
+            password,
             referralLink,
+            parentId: parentId || null,
         });
 
         await newUser.save();
 
-        // Update parent’s referredIds if exists
+        // 7️⃣ Update parent’s referredIds if any
         if (parentId) {
             await User.updateOne({ userId: parentId }, { $push: { referredIds: userId } });
         }
 
-        res.status(201).json({
+        // await BankDetails.create({
+        //     userId,
+        //     name,
+        //     nameAsPerDocument: name,
+        //     bankName: "",
+        //     accountNo: "",
+        //     branchName: "",
+        //     ifscCode: "",
+        //     passbookPhoto: "",
+        //     status: "pending",
+        // });
+
+        // await Payout.create({
+        //     userId,
+        //     name,
+        //     totalPoints: 0,
+        //     referredPoints: 0,
+        //     directReferredPoints: 0,
+        // });
+
+        // await CourseDetails.create({
+        //     userId,
+        //     name,
+        //     courseName: "",
+        //     packageName: "",
+        //     validityStart: null,
+        //     validityEnd: null,
+        //     purchaseHistory: [],
+        // });
+
+        // 9️⃣ Success response
+        return res.status(201).json({
             success: true,
             message: "User registered successfully",
             data: {
                 userId,
                 name,
-                phone,
                 email,
+                phone,
                 referralLink,
-                status: newUser.status,
             },
         });
     } catch (error) {
-        console.error("Registration Error:", error);
-        res.status(500).json({ success: false, message: "Registration failed", error: error.message });
+        console.error("❌ Registration Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Registration failed",
+            error: error.message,
+        });
     }
 };
 
@@ -113,33 +144,47 @@ export const loginUser = async (req, res) => {
     try {
         const { emailOrPhone, password } = req.body;
 
+        // 🧩 Basic validation
         if (!emailOrPhone || !password) {
-            return res.status(400).json({ message: "Email/Phone and Password are required." });
+            return res.status(400).json({
+                success: false,
+                message: "Email/Phone and Password are required.",
+            });
         }
 
-        // Check if user exists (by email or phone)
+        // 🔍 Check if user exists (by email or phone)
         const user = await User.findOne({
             $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
         });
 
         if (!user) {
-            return res.status(404).json({ message: "User not found." });
+            return res.status(404).json({
+                success: false,
+                message: "User not found.",
+            });
         }
 
-        // Verify password
-        const isMatch = await bcrypt.compare(password, user.password);
+        // 🔐 Compare password using the model method
+        const isMatch = await user.matchPassword(password);
         if (!isMatch) {
-            return res.status(401).json({ message: "Invalid credentials." });
+            return res.status(401).json({
+                success: false,
+                message: "Invalid credentials.",
+            });
         }
 
-        // Optional: check if user is active
+        // 🚫 (Optional) Check if user is active
         // if (user.status !== "active") {
-        //     return res.status(403).json({ message: "Account not active. Please contact admin." });
+        //     return res.status(403).json({
+        //         success: false,
+        //         message: "Account not active. Please contact admin.",
+        //     });
         // }
 
-        // Generate token
+        // 🎟️ Generate JWT token
         const token = generateToken(user._id);
 
+        // ✅ Send response
         res.status(200).json({
             success: true,
             message: "Login successful.",
@@ -155,7 +200,7 @@ export const loginUser = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Login error:", error);
+        console.error("❌ Login Error:", error);
         res.status(500).json({
             success: false,
             message: "Login failed.",
@@ -387,32 +432,26 @@ export const updateUserStatus = async (req, res) => {
 //all user and all user details
 export const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find().select("-password -aadharPhoto.data");
-        // ✅ Exclude password and raw binary aadhar image data for security & performance
+        // ✅ Fetch all users from database without excluding anything
+        const users = await User.find();
 
-        if (!users.length) {
+        if (!users || users.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "No users found in the system",
             });
         }
 
-        // ✅ If you want to show Aadhaar photo as base64 string:
-        const formattedUsers = users.map(user => ({
-            ...user.toObject(),
-            aadharPhoto: user.aadharPhoto?.data
-                ? `data:${user.aadharPhoto.contentType};base64,${user.aadharPhoto.data.toString("base64")}`
-                : null,
-        }));
-
+        // ✅ Send everything as-is
         res.status(200).json({
             success: true,
             message: "All users fetched successfully",
-            totalUsers: formattedUsers.length,
-            data: formattedUsers,
+            totalUsers: users.length,
+            data: users,
         });
+
     } catch (error) {
-        console.error("Error fetching all users:", error);
+        console.error("❌ Error fetching all users:", error);
         res.status(500).json({
             success: false,
             message: "Failed to fetch all users",
