@@ -1,8 +1,5 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
-import BankDetails from "../models/BankDetails.js";
-import Payout from "../models/Payout.js";
-import CourseDetails from "../models/courseDetails.js";
 import { generateUniqueUserId } from "../utils/generateUserId.js";
 import { uploadFileToS3 } from "../utils/uploadToS3.js";
 import { generateToken } from "../utils/generateToken.js";

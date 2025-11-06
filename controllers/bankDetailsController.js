@@ -85,33 +85,25 @@ export const saveBankDetails = async (req, res) => {
 // ✅ Get all KYC details (including image)
 export const getAllKycDetails = async (req, res) => {
     try {
+        // ✅ Fetch all bank/KYC details sorted by latest first
         const allDetails = await BankDetails.find().sort({ createdAt: -1 });
 
-        // Convert image binary to Base64 for each entry
-        const formattedDetails = allDetails.map(detail => ({
-            _id: detail._id,
-            userId: detail.userId,
-            name: detail.name,
-            nameAsPerDocument: detail.nameAsPerDocument,
-            bankName: detail.bankName,
-            accountNo: detail.accountNo,
-            branchName: detail.branchName,
-            ifscCode: detail.ifscCode,
-            status: detail.status,
-            createdAt: detail.createdAt,
-            updatedAt: detail.updatedAt,
-            passbookPhoto: detail.passbookPhoto?.data
-                ? `data:${detail.passbookPhoto.contentType};base64,${detail.passbookPhoto.data.toString("base64")}`
-                : null,
-        }));
+        if (!allDetails.length) {
+            return res.status(404).json({
+                success: false,
+                message: "No KYC details found in the system",
+            });
+        }
 
+        // ✅ Return everything directly (including S3 photo URLs)
         res.status(200).json({
             success: true,
             message: "Fetched all KYC details successfully",
-            data: formattedDetails,
+            totalRecords: allDetails.length,
+            data: allDetails,
         });
     } catch (error) {
-        console.error("Error fetching KYC details:", error);
+        console.error("❌ Error fetching KYC details:", error);
         res.status(500).json({
             success: false,
             message: "Failed to fetch KYC details",
@@ -119,6 +111,7 @@ export const getAllKycDetails = async (req, res) => {
         });
     }
 };
+
 
 
 //update status

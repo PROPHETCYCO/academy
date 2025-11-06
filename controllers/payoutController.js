@@ -35,7 +35,6 @@ export const runGlobalPayout = async (req, res) => {
             const payoutEntry = {
                 amount: totalPoints,
                 status: "pending",
-                date: new Date(), // UTC stored, but we'll convert on response
             };
 
             // Create or update user's payout record
@@ -45,18 +44,22 @@ export const runGlobalPayout = async (req, res) => {
                 payoutRecord = new Payout({
                     userId: user.userId,
                     name: user.name,
-                    totalPoints: totalPoints, // ✅ initialize totalPoints
+                    totalPoints: totalPoints,
+                    referredPoints: 0,          // reset to 0 after payout
+                    directReferredPoints: 0,    // reset to 0 after payout
                     payouts: [payoutEntry],
                 });
             } else {
+                payoutRecord.totalPoints += totalPoints;
+                payoutRecord.referredPoints = 0;
+                payoutRecord.directReferredPoints = 0;
                 payoutRecord.payouts.push(payoutEntry);
-                payoutRecord.totalPoints += totalPoints; // ✅ keep adding total points after each payout
             }
 
             await payoutRecord.save();
 
             // Reset referredPoints after payout
-            user.referredPoints = 0;
+            //user.referredPoints = 0;
             user.selfPoints = 0;
             await user.save();
 
