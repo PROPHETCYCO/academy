@@ -1,9 +1,9 @@
-import { Checkout } from "../models/Checkout.js";
+import  Checkout  from "../models/Checkout.js";
 import { instance } from "../server.js";
 import crypto from "crypto";
 import dotenv from "dotenv";
 import User from "../models/User.js";
-import CourseDetails from "../models/courseDetails.js";
+import CourseDetails from "../models/CourseDetails.js";
 
 dotenv.config();
 export const checkout = async (req, res) => {

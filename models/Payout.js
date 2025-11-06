@@ -68,4 +68,5 @@ const payoutSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-export default mongoose.model("Payout", payoutSchema);
+const Payout = mongoose.model("Payout", payoutSchema);
+export default Payout;

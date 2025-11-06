@@ -60,4 +60,5 @@ const bankDetailsSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-export default mongoose.model("BankDetails", bankDetailsSchema);
+const BankDetails = mongoose.model("BankDetails", bankDetailsSchema);
+export default BankDetails;
