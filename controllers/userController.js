@@ -1,5 +1,9 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
+import Payout from "../models/Payout.js";
+import BankDetails from "../models/BankDetails.js";
+import { Checkout } from "../models/Checkout.js";
+import CourseDetails from "../models/courseDetails.js";
 import { generateUniqueUserId } from "../utils/generateUserId.js";
 import { uploadFileToS3 } from "../utils/uploadToS3.js";
 import { generateToken } from "../utils/generateToken.js";
@@ -493,6 +497,60 @@ export const getReferredSelfPoints = async (req, res) => {
             success: false,
             message: "Internal Server Error",
             error: error.message
+        });
+    }
+};
+
+
+//users dashboard data
+export const getUserFullDetails = async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: "userId is required in request body",
+            });
+        }
+
+        // 🧩 Fetch all user-related data in parallel for speed
+        const [user, payout, bankDetails, courseDetails, checkouts] = await Promise.all([
+            User.findOne({ userId }),
+            Payout.findOne({ userId }),
+            BankDetails.findOne({ userId }),
+            CourseDetails.findOne({ userId }),
+            Checkout.find({ userId }),
+        ]);
+
+        // ✅ Prepare dynamic response (only include existing documents)
+        const responseData = {};
+        if (user) responseData.user = user;
+        if (payout) responseData.payout = payout;
+        if (bankDetails) responseData.bankDetails = bankDetails;
+        if (courseDetails) responseData.courseDetails = courseDetails;
+        if (checkouts && checkouts.length > 0) responseData.checkouts = checkouts;
+
+        if (Object.keys(responseData).length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No records found for this userId",
+            });
+        }
+
+        // ✅ Send success response
+        res.status(200).json({
+            success: true,
+            message: "Fetched all available user details successfully",
+            data: responseData,
+        });
+
+    } catch (error) {
+        console.error("❌ Error fetching full user details:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch full user details",
+            error: error.message,
         });
     }
 };

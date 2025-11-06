@@ -1,5 +1,5 @@
 import express from "express";
-import { getAadharPhoto, getAllUsers, getReferredSelfPoints, getuser_by_id, loginUser, registerUser, updateUserDetails, updateUserStatus } from "../controllers/userController.js";
+import { getAadharPhoto, getAllUsers, getReferredSelfPoints, getuser_by_id, getUserFullDetails, loginUser, registerUser, updateUserDetails, updateUserStatus } from "../controllers/userController.js";
 import upload from "../middleware/upload.js";
 import { checkout, getorderdetails_by_userid, getUserCheckoutDetails, paymentverification_students } from "../controllers/checkoutController.js";
 
@@ -15,6 +15,7 @@ router.post(
   registerUser
 ); // for registering user
 router.post("/login", loginUser);  // foir login user
+router.post("/full-details", getUserFullDetails);  //fetch full user details by user id
 router.get("/:id/aadharPhoto", getAadharPhoto);  //particularly fetch user
 
 router.post("/checkout", checkout);
